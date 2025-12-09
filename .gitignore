@@ -17,3 +17,4 @@ yarn-error.log
 /frontend/client/dist/
 backend/dist/
 .comment_backups/
+backend/seed/truestate_assignment_dataset.csv
