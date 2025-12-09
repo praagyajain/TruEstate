@@ -54,7 +54,7 @@ export default function Index() {
       try {
         setStatsLoading(true);
         const qp = new URLSearchParams(Object.fromEntries(searchParams.entries()));
-        const url = `http://localhost:4000/api/sales/stats/`;
+        const url = `https://truestate-iyne.onrender.com/api/sales/stats/`;
         const res = await fetch(url, { signal: abortStats.signal });
         console.log("Stats Response", res);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
