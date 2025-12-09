@@ -133,12 +133,12 @@ export default function Index() {
 
   return (
     <div className="flex h-screen bg-background">
-      
+
       <Sidebar />
 
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
-        
+
         <Header onFiltersChange={(newFilters) => {
 
           const displayToSortKey = {
@@ -166,16 +166,16 @@ export default function Index() {
           });
         }} />
 
-        
+
         <StatsCards stats={statsData} />
 
-        
+
         <div className="flex-1 overflow-y-auto relative">
           {error ? (
             <div className="p-4 text-red-600">Error loading sales: {error}</div>
           ) : (
             <>
-              
+
               {loading && (
                 <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/40 backdrop-blur-sm backdrop-filter">
                   <div className="flex items-center gap-3">
