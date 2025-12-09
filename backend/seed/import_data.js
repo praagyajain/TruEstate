@@ -1,0 +1,88 @@
+require("dotenv").config();
+const mongoose = require("mongoose");
+const fs = require("fs");
+const csv = require("csv-parser");
+
+const Customer = require("../src/models/Customer");
+const Product = require("../src/models/Product");
+const Sale = require("../src/models/Sale");
+
+async function connectDB() {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("Connected to MongoDB");
+}
+
+async function readCSV() {
+    const rows = [];
+    return new Promise((resolve) => {
+        fs.createReadStream(__dirname + "/truestate_assignment_dataset.csv")
+            .pipe(csv())
+            .on("data", (row) => rows.push(row))
+            .on("end", () => resolve(rows));
+    });
+}
+
+async function seed() {
+    await connectDB();
+    console.log("Reading CSV...");
+
+    const rows = await readCSV();
+
+    for (const row of rows) {
+        try {
+            const customer = await Customer.findOneAndUpdate(
+                { customerId: row["Customer ID"] },
+                {
+                    customerId: row["Customer ID"],
+                    name: row["Customer Name"],
+                    phone: row["Phone Number"],
+                    gender: row["Gender"],
+                    age: Number(row["Age"]),
+                    region: row["Customer Region"],
+                    type: row["Customer Type"]
+                },
+                { upsert: true, new: true }
+            );
+            const product = await Product.findOneAndUpdate(
+                { productId: row["Product ID"] },
+                {
+                    productId: row["Product ID"],
+                    name: row["Product Name"],
+                    brand: row["Brand"],
+                    category: row["Product Category"],
+                    tags: row["Tags"]
+                        ? row["Tags"].split(",").map(t => t.trim())
+                        : []
+                },
+                { upsert: true, new: true }
+            );
+            await Sale.create({
+                transactionId: row["Transaction ID"],
+                date: new Date(row["Date"]),
+                customer: customer._id,
+                product: product._id,
+                quantity: Number(row["Quantity"]),
+                pricePerUnit: Number(row["Price per Unit"]),
+                discountPct: Number(row["Discount Percentage"]),
+                totalAmount: Number(row["Total Amount"]),
+                finalAmount: Number(row["Final Amount"]),
+                paymentMethod: row["Payment Method"],
+                orderStatus: row["Order Status"],
+                deliveryType: row["Delivery Type"],
+                storeId: row["Store ID"],
+                storeLocation: row["Store Location"],
+                salespersonId: row["Salesperson ID"],
+                employeeName: row["Employee Name"]
+            });
+
+        } catch (err) {
+            console.log("Error processing row:", row, err.message);
+            continue;
+        }
+    }
+
+    console.log("Seeding complete!");
+    process.exit();
+}
+
+seed();

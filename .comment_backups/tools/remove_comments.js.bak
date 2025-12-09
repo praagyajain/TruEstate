@@ -1,0 +1,90 @@
+#!/usr/bin/env node
+const fs = require('fs');
+const path = require('path');
+
+const rawArgs = process.argv.slice(2);
+const argv = {};
+for (let i = 0; i < rawArgs.length; i++) {
+  const a = rawArgs[i];
+  if (a === '--apply') argv.apply = true;
+  else if (a === '--root' && rawArgs[i + 1]) { argv.root = rawArgs[i + 1]; i++; }
+}
+const root = argv.root || process.cwd();
+const apply = !!argv.apply;
+
+const skipDirs = new Set(['node_modules', '.git', '.comment_backups']);
+const exts = new Set(['.js', '.jsx', '.ts', '.tsx', '.css', '.html', '.py', '.java', '.sh', '.env', '.scss', '.sass', '.less']);
+
+const backupRoot = path.join(root, '.comment_backups');
+function ensureDir(p) { if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true }); }
+
+function isBinaryFile(filePath) {
+  try {
+    const buf = fs.readFileSync(filePath);
+    for (let i = 0; i < 24 && i < buf.length; i++) {
+      if (buf[i] === 0) return true;
+    }
+    return false;
+  } catch (e) { return true; }
+}
+
+function removeComments(content) {
+  // Remove JSX comments like {/* ... */}
+  content = content.replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, '');
+  // Remove JS/TS/CSS block comments /* ... */
+  content = content.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Remove HTML comments <!-- ... -->
+  content = content.replace(/<!--([\s\S]*?)-->/g, '');
+  // Remove single-line JS comments //... but avoid URLs (http:// or https://)
+  content = content.replace(/(^|[^:\"'])\s*\/\/[^\n\r]*/gm, '$1');
+  // Remove Python/Ruby style comments # ...
+  content = content.replace(/(^|[^\"'])\s*#.*$/gm, '$1');
+  return content;
+}
+
+const changed = [];
+function walk(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (skipDirs.has(entry.name)) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walk(full);
+    } else if (entry.isFile()) {
+      const ext = path.extname(entry.name).toLowerCase();
+      if (!exts.has(ext)) continue;
+      if (isBinaryFile(full)) continue;
+      let src = fs.readFileSync(full, 'utf8');
+      const cleaned = removeComments(src);
+      if (cleaned !== src) {
+        changed.push({ file: full, original: src, cleaned });
+      }
+    }
+  }
+}
+
+try {
+  walk(root);
+} catch (e) {
+  console.error('Error scanning files:', e);
+  process.exit(2);
+}
+
+console.log(`Found ${changed.length} files with removable comments.`);
+if (!apply) {
+  for (const c of changed) console.log('DRY:', c.file);
+  console.log('\nRun with --apply to perform changes. Example: node tools/remove_comments.js --root /path/to/repo --apply');
+  process.exit(0);
+}
+
+ensureDir(backupRoot);
+for (const c of changed) {
+  const rel = path.relative(root, c.file);
+  const backupPath = path.join(backupRoot, rel + '.bak');
+  ensureDir(path.dirname(backupPath));
+  fs.writeFileSync(backupPath, c.original, 'utf8');
+  fs.writeFileSync(c.file, c.cleaned, 'utf8');
+  console.log('UPDATED:', c.file);
+}
+
+console.log('Comments removed. Backups saved under .comment_backups/');

@@ -1,0 +1,155 @@
+import { useState } from "react";
+import { Search, ChevronDown, Settings } from "lucide-react";
+
+interface HeaderProps {
+  onFiltersChange?: (filters: Record<string, string>) => void;
+}
+
+const Header = ({ onFiltersChange }: HeaderProps) => {
+  const [filters, setFilters] = useState({
+    customerRegion: "",
+    gender: "",
+    ageRange: "",
+    productCategory: "",
+    tags: "",
+    paymentMethod: "",
+    date: "",
+    sortBy: "Customer Name (A-Z)",
+  });
+
+  const handleFilterChange = (key: string, value: string) => {
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    onFiltersChange?.(newFilters);
+  };
+
+  const teamMembers = [
+    { initial: "M", color: "bg-purple-500" },
+    { initial: "R", color: "bg-blue-500" },
+    { initial: "S", color: "bg-cyan-500" },
+    { initial: "D", color: "bg-pink-500" },
+  ];
+
+  return (
+    <div className="bg-white border-b border-gray-200 p-6">
+      
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Sales Management System
+        </h1>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center">
+            {teamMembers.map((member, index) => (
+              <div
+                key={index}
+                className={`w-10 h-10 ${member.color} rounded-full flex items-center justify-center text-white font-semibold text-sm -ml-2 border-2 border-white hover:z-10 transition`}
+              >
+                {member.initial}
+              </div>
+            ))}
+          </div>
+          <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition">
+            <Settings size={20} />
+          </button>
+        </div>
+      </div>
+
+      
+      <div className="mb-6">
+        <div className="relative">
+          <Search
+            size={20}
+            className="absolute left-3 top-3 text-gray-400"
+          />
+          <input
+            type="text"
+            placeholder="Name, Phone no."
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      
+      <div className="flex gap-3 overflow-x-auto pb-2">
+        {[
+          {
+            key: "customerRegion",
+            label: "Customer Region",
+            options: ["North", "South", "East", "West"],
+          },
+          {
+            key: "gender",
+            label: "Gender",
+            options: ["Male", "Female", "Other"],
+          },
+          {
+            key: "ageRange",
+            label: "Age Range",
+            options: ["18-25", "25-35", "35-50", "50+"],
+          },
+          {
+            key: "productCategory",
+            label: "Product Category",
+            options: ["Clothing", "Electronics", "Books", "Home"],
+          },
+          { key: "tags", label: "Tags", options: ["VIP", "New", "Loyal"] },
+          {
+            key: "paymentMethod",
+            label: "Payment Method",
+            options: ["Credit Card", "Debit Card", "Cash", "Online"],
+          },
+          {
+            key: "date",
+            label: "Date",
+            options: ["Today", "This Week", "This Month", "This Year"],
+          },
+        ].map((filter) => (
+          <div key={filter.key} className="relative inline-block flex-shrink-0">
+            <select
+              value={filters[filter.key as keyof typeof filters]}
+              onChange={(e) =>
+                handleFilterChange(filter.key, e.target.value)
+              }
+              className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer whitespace-nowrap"
+            >
+              <option value="">{filter.label}</option>
+              {filter.options.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={16}
+              className="absolute right-2 top-3 text-gray-400 pointer-events-none"
+            />
+          </div>
+        ))}
+
+        
+        <div className="relative inline-block flex-shrink-0">
+          <select
+            value={filters.sortBy}
+            onChange={(e) => handleFilterChange("sortBy", e.target.value)}
+            className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer whitespace-nowrap"
+          >
+            <option value="Customer Name (A-Z)">
+              Sort by: Customer Name (A-Z)
+            </option>
+            <option value="Customer Name (Z-A)">
+              Sort by: Customer Name (Z-A)
+            </option>
+            <option value="Date (Newest)">Sort by: Date (Newest)</option>
+            <option value="Date (Oldest)">Sort by: Date (Oldest)</option>
+          </select>
+          <ChevronDown
+            size={16}
+            className="absolute right-2 top-3 text-gray-400 pointer-events-none"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Header;

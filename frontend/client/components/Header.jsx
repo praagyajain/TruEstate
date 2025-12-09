@@ -1,0 +1,271 @@
+import { useState, useEffect, useRef } from "react";
+import { Search, ChevronDown, Settings } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+
+const Header = ({ onFiltersChange }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [filters, setFilters] = useState({
+    region: "",
+    gender: "",
+    ageRange: "",
+    category: "",
+    tags: "",
+    paymentMethod: "",
+    date: "",
+    sortBy: "",
+  });
+
+  const handleFilterChange = (key, value) => {
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    const next = new URLSearchParams(searchParams.toString());
+    const displayToSortKey = {
+      "Customer Name (A-Z)": "customer_asc",
+      "Customer Name (Z-A)": "customer_desc",
+      "Date (Newest)": "date_desc",
+      "Date (Oldest)": "date_asc",
+    };
+
+    if (key === "sortBy") {
+      next.delete("sortBy");
+      if (!value) {
+        next.delete("sort");
+      } else {
+        const sortKey = displayToSortKey[value];
+        if (sortKey) next.set("sort", sortKey);
+      }
+    } else if (key === "ageRange") {
+      if (!value) {
+        next.delete("minAge");
+        next.delete("maxAge");
+      } else {
+        const map = {
+          "18-25": [18, 25],
+          "25-35": [25, 35],
+          "35-50": [35, 50],
+          "50+": [50, null]
+        };
+        const pair = map[value];
+        if (pair) {
+          next.set("minAge", String(pair[0]));
+          if (pair[1] != null) next.set("maxAge", String(pair[1]));
+          else next.delete("maxAge");
+        } else {
+          next.delete("minAge");
+          next.delete("maxAge");
+        }
+        next.delete("ageRange");
+      }
+    } else {
+      if (value === "" || value == null) {
+        next.delete(key);
+      } else {
+        next.set(key, value);
+      }
+    }
+    if (next.has("page")) next.set("page", "1");
+    else next.set("page", "1");
+    setSearchParams(next);
+    onFiltersChange?.(newFilters);
+  };
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("search") || "");
+  const searchTimer = useRef(null);
+
+  const flushSearch = (val) => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (!val) next.delete("search");
+    else next.set("search", val);
+    next.set("page", "1");
+    setSearchParams(next);
+    onFiltersChange?.({ ...filters, search: val });
+  };
+
+  const scheduleSearch = (val) => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => flushSearch(val), 300);
+  };
+  useEffect(() => {
+    const s = searchParams.get("search") || "";
+    setSearchQuery(s);
+  }, [searchParams.get("search")]);
+  useEffect(() => {
+    const params = Object.fromEntries([...searchParams.entries()]);
+
+
+    if (params.ageRange) {
+      const ar = String(params.ageRange).trim();
+      const nextParams = new URLSearchParams(searchParams.toString());
+      if (ar.includes("+")) {
+        const n = parseInt(ar.replace("+", ""), 10);
+        if (!Number.isNaN(n)) nextParams.set("minAge", String(n));
+      } else if (ar.includes("-")) {
+        const parts = ar.split("-").map(s => s.trim());
+        const a = parseInt(parts[0], 10);
+        const b = parts[1] ? parseInt(parts[1], 10) : NaN;
+        if (!Number.isNaN(a)) nextParams.set("minAge", String(a));
+        if (!Number.isNaN(b)) nextParams.set("maxAge", String(b));
+      }
+      nextParams.delete("ageRange");
+      setSearchParams(nextParams);
+      return;
+    }
+    const allowed = [
+      "region",
+      "gender",
+      "ageRange",
+      "category",
+      "tags",
+      "paymentMethod",
+      "date",
+      "sortBy",
+    ];
+    const fromParams = {};
+    allowed.forEach((k) => {
+      if (params[k] !== undefined) fromParams[k] = params[k];
+    });
+    const sortKeyToDisplay = {
+      customer_asc: "Customer Name (A-Z)",
+      customer_desc: "Customer Name (Z-A)",
+      date_desc: "Date (Newest)",
+      date_asc: "Date (Oldest)",
+    };
+    if (params.sort) {
+      const mapped = sortKeyToDisplay[params.sort];
+      if (mapped) fromParams.sortBy = mapped;
+    }
+    if (!fromParams.ageRange) {
+      const min = params.minAge;
+      const max = params.maxAge;
+      if (min && max) {
+        fromParams.ageRange = `${min}-${max}`;
+      } else if (min && !max) {
+        fromParams.ageRange = `${min}+`;
+      }
+    }
+    if (Object.keys(fromParams).length > 0) {
+      const merged = { ...filters, ...fromParams };
+      setFilters(merged);
+      onFiltersChange?.(merged);
+    }
+  }, [searchParams]);
+
+  return (
+    <div className="bg-white border-b border-gray-200 p-6">
+      
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Sales Management System
+        </h1>
+        
+        <div className="mb-6">
+          <div className="relative">
+            <Search
+              size={20}
+              className="absolute left-3 top-3 text-gray-400"
+            />
+            <input
+              type="text"
+              placeholder="Name, Phone no."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                scheduleSearch(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (searchTimer.current) clearTimeout(searchTimer.current);
+                  flushSearch(e.target.value);
+                }
+              }}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+      </div>
+
+
+
+      
+      <div className="flex gap-3 overflow-x-auto pb-2">
+        {[
+          {
+            key: "region",
+            label: "Customer Region",
+            options: ["North", "South", "East", "West"],
+          },
+          {
+            key: "gender",
+            label: "Gender",
+            options: ["Male", "Female", "Other"],
+          },
+          {
+            key: "category",
+            label: "Product Category",
+            options: ["Clothing", "Electronics", "Beauty"],
+          },
+          {
+            key: "tags",
+            label: "Tags",
+            options: ["formal", "fashion", "gadgets", "wireless", "smart", "beauty", "skincare", "casual", "cotton", "makeup", "fragrance-free", "portable",
+              "accessories", "organic",
+              "beauty"]
+          },
+          {
+            key: "paymentMethod",
+            label: "Payment Method",
+            options: ["Credit Card", "Debit Card", "Cash", "Online"],
+          },
+          {
+            key: "date",
+            label: "Date",
+            options: ["Today", "This Week", "This Month", "This Year"],
+          },
+        ].map((filter) => (
+          <div key={filter.key} className="relative inline-block flex-shrink-0">
+            <select
+              value={filters[filter.key]}
+              onChange={(e) =>
+                handleFilterChange(filter.key, e.target.value)
+              }
+              className="appearance-none bg-white border border-gray-200 rounded-lg px-5 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer whitespace-nowrap"
+            >
+              <option value="">{filter.label}</option>
+              {filter.options.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+
+            </select>
+            <ChevronDown
+              size={16}
+              className="absolute right-1 top-3 text-gray-400 pointer-events-none"
+            />
+          </div>
+        ))}
+
+        
+        <div className="relative inline-block flex-shrink-0">
+          <select
+            value={filters.sortBy}
+            onChange={(e) => handleFilterChange("sortBy", e.target.value)}
+            className="appearance-none bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer whitespace-nowrap"
+          >
+            <option value="">Sort by</option>
+            <option value="Customer Name (A-Z)">Customer Name (A-Z)</option>
+            <option value="Customer Name (Z-A)">Customer Name (Z-A)</option>
+            <option value="Date (Newest)">Date (Newest)</option>
+            <option value="Date (Oldest)">Date (Oldest)</option>
+          </select>
+          <ChevronDown
+            size={16}
+            className="absolute right-2 top-3 text-gray-400 pointer-events-none"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Header;

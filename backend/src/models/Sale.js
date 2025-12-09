@@ -1,0 +1,23 @@
+
+const mongoose = require('mongoose');
+
+const SaleSchema = new mongoose.Schema({
+    transactionId: String,
+    date: Date,
+    product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+    customer: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer' },
+    quantity: Number,
+    pricePerUnit: Number,
+    discountPct: Number,
+    totalAmount: Number,
+    finalAmount: Number,
+    paymentMethod: String,
+    orderStatus: String,
+    deliveryType: String,
+    storeId: String,
+    storeLocation: String,
+    salespersonId: String,
+    employeeName: String
+});
+
+module.exports = mongoose.model('Sale', SaleSchema);

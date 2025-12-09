@@ -1,0 +1,15 @@
+// backend/src/models/Product.js
+const mongoose = require('mongoose');
+
+const ProductSchema = new mongoose.Schema({
+    productId: String,
+    name: String,
+    brand: String,
+    category: String,
+    tags: [String]
+});
+
+// text index ONLY on name
+ProductSchema.index({ name: 'text' });
+
+module.exports = mongoose.model('Product', ProductSchema);
