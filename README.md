@@ -20,7 +20,7 @@ Sorting Implementation Summary
 
 Sorting is controlled by a `sort` query parameter that maps to backend sort keys (for example `date_desc`, `date_asc`, `customer_asc`, `customer_desc`). The backend only applies an explicit `$sort` stage when a sort key is provided.
 
-Pagination Implementation Summary
+Pagination Implementation Summarygit config --global user.name
 
 Pagination is done on the server using `page` and `limit` query parameters. The listing endpoint uses an aggregation pipeline with a `$facet` to return both `data` and `meta` (including total, page, limit, totalPages, hasNext, hasPrev) so the frontend can render paginated results and controls.
 
